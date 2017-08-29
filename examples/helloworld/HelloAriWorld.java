@@ -27,15 +27,17 @@ public class HelloAriWorld {
         try {
             
             ARI ari = AriFactory.nettyHttp(
-                    "http://10.10.5.41:8088/", 
-                    "ari4java", "yothere", 
-                    AriVersion.ARI_1_5_0);
+                    "http://172.20.33.218:8088/",
+                    "ari4java", "1234",
+                    AriVersion.ARI_2_0_0);
             
             AsteriskInfo info = ari.asterisk().getInfo("");
             List<Channel> channels = ari.channels().list();
             
             System.out.println("There are " + channels.size() + " active channels now.");
             System.out.println( "System up since " + info.getStatus().getStartup_time() );
+
+            ari.cleanup();
             
         } catch (Throwable t) {
             t.printStackTrace();

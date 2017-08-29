@@ -13,7 +13,6 @@ import ch.loway.oss.ari4java.tools.MessageQueue;
 import ch.loway.oss.ari4java.tools.RestException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class opens up an ARI application that creates a bridge with MOH.
@@ -24,10 +23,11 @@ import java.util.Map;
  */
 public class ConnectAndDial {
 
-    public static final String ASTERISK_ADDRESS = "http://192.168.99.100:18088/";
-    public static final String ASTERISK_USER    = "ari4java";
-    public static final String ASTERISK_PASS    = "yothere";
-    
+    public static final String ASTERISK_ADDRESS = "http://172.20.33.218:8088/";
+    public static final String ASTERISK_USER = "ari4java";
+    public static final String ASTERISK_PASS = "1234";
+    public static final String ASTERISK_APP = "myapp";
+
     ARI ari = null;
     Bridge b = null;
 
@@ -73,9 +73,9 @@ public class ConnectAndDial {
         System.out.println("Connecting to: " + ASTERISK_ADDRESS 
                 + " as " + ASTERISK_USER + ":" + ASTERISK_PASS);
         
-        ari = ARI.build( ASTERISK_ADDRESS, "myapp", 
+        ari = ARI.build( ASTERISK_ADDRESS, ASTERISK_APP,
                 ASTERISK_USER, ASTERISK_PASS, 
-                AriVersion.IM_FEELING_LUCKY);
+                AriVersion.ARI_2_0_0);
 
         System.out.println("Connected through ARI: " + ari.getVersion());
         
@@ -123,7 +123,8 @@ public class ConnectAndDial {
 
         String dummy = "";
   
-        Channel chan = ari.channels().originate("Local/100@wdep", "100", "wdep", 1, dummy, dummy, dummy, dummy, 10000, Collections.EMPTY_MAP, dummy, dummy, dummy);
+        Channel chan = ari.channels().originate("Local/100@wdep", "100", "wdep", 1, dummy, dummy, dummy, dummy, 10000, Collections.EMPTY_MAP, dummy, dummy, dummy, dummy);
+
         System.out.println( "Channel:" + chan.getId() + " in state " + chan.getState() );
         
         while ((System.currentTimeMillis() - start) < 10 * 1000L) {

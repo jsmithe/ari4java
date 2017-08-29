@@ -4,27 +4,28 @@ import java.util.List;
 
 import ch.loway.oss.ari4java.ARI;
 import ch.loway.oss.ari4java.AriVersion;
-import ch.loway.oss.ari4java.generated.ActionApplications;
-import ch.loway.oss.ari4java.generated.ActionAsterisk;
-import ch.loway.oss.ari4java.generated.ActionEvents;
-import ch.loway.oss.ari4java.generated.Application;
-import ch.loway.oss.ari4java.generated.AsteriskInfo;
-import ch.loway.oss.ari4java.generated.Message;
-import ch.loway.oss.ari4java.generated.Variable;
+import ch.loway.oss.ari4java.generated.*;
 import ch.loway.oss.ari4java.tools.AriCallback;
 import ch.loway.oss.ari4java.tools.RestException;
 import ch.loway.oss.ari4java.tools.http.NettyHttpClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TestARI {
 
-    public static void main(String[] args) {
+	public static final String ASTERISK_ADDRESS = "http://172.20.33.228:8088/";
+	public static final String ASTERISK_USER = "ari4java";
+	public static final String ASTERISK_PASS = "1234";
+	public static final String ASTERISK_APP = "hello,goodbye";
+
+	public static void main(String[] args) {
 		ARI ari = new ARI();
 		NettyHttpClient hc = new NettyHttpClient();
 		try {
-			hc.initialize("http://192.168.0.194:8088/", "admin", "admin");
+			hc.initialize(ASTERISK_ADDRESS, ASTERISK_USER, ASTERISK_PASS);
 			ari.setHttpClient(hc);
 			ari.setWsClient(hc);
-			ari.setVersion(AriVersion.ARI_0_0_1);
+			ari.setVersion(AriVersion.ARI_2_0_0);
 			ActionApplications ac = ari.getActionImpl(ActionApplications.class);
 			List<? extends Application> alist = ac.list();
 			for (Application app : alist) {
@@ -75,11 +76,27 @@ public class TestARI {
 				}
 			});
 			System.out.println("Waiting for response...");
+			ObjectMapper objectMapper = new ObjectMapper();
 			ActionEvents ae = ari.getActionImpl(ActionEvents.class);
-			ae.eventWebsocket("hello,goodbye", new AriCallback<Message>() {
+			ae.eventWebsocket(ASTERISK_APP, false, new AriCallback<Message>() {
 				@Override
 				public void onSuccess(Message result) {
 					System.out.println("ws="+result);
+					if(result instanceof StasisStart) {
+						Channel channel = ((StasisStart)result).getChannel();
+						System.out.printf("Channel %s has entered the application ", channel.getName());
+						printObject(objectMapper, channel);
+
+						try {
+							ari.channels().hangup(channel.getId(), "");
+						} catch (RestException e) {
+							System.out.println(e);
+						}
+					} else if(result instanceof StasisEnd) {
+						Channel channel = ((StasisEnd) result).getChannel();
+						System.out.printf("Channel %s has left the application ", channel.getName());
+						printObject(objectMapper, channel);
+					}
 				}
 				
 				@Override
@@ -87,7 +104,7 @@ public class TestARI {
 					e.printStackTrace();
 				}
 			});
-			Thread.sleep(5000); // Allow wheels to turn before applying brakes
+			Thread.sleep(15000); // Allow wheels to turn before applying brakes
 			ari.closeAction(ae);
 			Thread.sleep(5000); 
 			hc.destroy();
@@ -95,5 +112,11 @@ public class TestARI {
 			e.printStackTrace();
 		}
 	}
-    
+    private static void printObject(ObjectMapper objectMapper, Object o) {
+		try {
+			System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o));
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+	}
 }
